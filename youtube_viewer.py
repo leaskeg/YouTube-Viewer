@@ -47,7 +47,8 @@ from youtubeviewer.proxies import *
 log = logging.getLogger('werkzeug')
 log.disabled = True
 
-SCRIPT_VERSION = '1.8.0'
+# Leaske: Updated the script version to 1.8.1 to reflect the latest changes
+SCRIPT_VERSION = '1.8.1'
 
 print(bcolors.OKGREEN + """
 
@@ -690,8 +691,10 @@ def main_viewer(proxy_type, proxy, position):
 
             try:
                 Patcher(executable_path=patched_driver).patch_exe()
-            except Exception:
-                pass
+            except Exception as e:
+                print(timestamp() + bcolors.FAIL +
+                      f"Worker {position} | Failed to patch executable: {e}" + bcolors.ENDC)
+                raise
 
             proxy_folder = os.path.join(
                 cwd, 'extension', f'proxy_auth_{position}')
@@ -701,9 +704,15 @@ def main_viewer(proxy_type, proxy, position):
             sleep(sleep_time)
             if cancel_all:
                 raise KeyboardInterrupt
-
-            driver = get_driver(background, viewports, agent, auth_required,
+            try:
+                driver = get_driver(background, viewports, agent, auth_required,
                                 patched_driver, proxy, proxy_type, proxy_folder)
+                driver_dict[driver] = proxy_folder
+                data_dir = driver.capabilities['chrome']['userDataDir']
+                temp_folders.append(data_dir)
+            except Exception as e:
+                print(f"Worker {position} | Error initializing driver: {e}")
+                raise
 
             driver_dict[driver] = proxy_folder
 
@@ -793,7 +802,6 @@ def main_viewer(proxy_type, proxy, position):
 
         create_html(
             {"#f14c4c": f"Worker {position} | Line : {e.__traceback__.tb_lineno} | {type(e).__name__} | {e.args[0] if e.args else ''}"})
-
 
 def get_proxy_list():
     if filename:
@@ -994,25 +1002,17 @@ def main():
 
 
 if __name__ == '__main__':
-
     clean_exe_temp(folder='youtube_viewer')
     date_fmt = datetime.now().strftime("%d-%b-%Y %H:%M:%S")
     cpu_usage = str(psutil.cpu_percent(1))
     update_chrome_version()
     check_update()
-    osname, exe_name = download_driver(patched_drivers=patched_drivers)
-    create_database(database=DATABASE, database_backup=DATABASE_BACKUP)
 
-    if osname == 'win':
-        import wmi
-        constructor = wmi.WMI()
-
-    urls = load_url()
-    queries = load_search()
-
+    # Load the configuration file to set max_threads
     if os.path.isfile(config_path):
         with open(config_path, 'r', encoding='utf-8-sig') as openfile:
             config = json.load(openfile)
+        max_threads = config.get("max_threads", 10)  # Default to 10 if not specified
 
         if len(config) == 11:
             print(json.dumps(config, indent=4))
@@ -1034,6 +1034,20 @@ if __name__ == '__main__':
             create_config(config_path=config_path)
     else:
         create_config(config_path=config_path)
+
+    # Download and copy ChromeDriver executables
+    osname, exe_name, driver_path = download_driver(patched_drivers=patched_drivers)
+    shutil.copy(driver_path, os.path.join(cwd, f'chromedriver{exe_name}'))  # Copy downloaded driver to cwd
+    copy_drivers(cwd=cwd, patched_drivers=patched_drivers, exe=exe_name, total=max_threads)
+    
+    create_database(database=DATABASE, database_backup=DATABASE_BACKUP)
+
+    if osname == 'win':
+        import wmi
+        constructor = wmi.WMI()
+
+    urls = load_url()
+    queries = load_search()
 
     hash_urls = get_hash("urls.txt")
     hash_queries = get_hash("search.txt")

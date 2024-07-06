@@ -23,6 +23,16 @@ SOFTWARE.
 """
 import os
 from glob import glob
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import WebDriverException, NoSuchElementException
+from time import sleep
+from random import uniform, choice, randint
 
 from .features import *
 
@@ -94,7 +104,7 @@ chrome.webRequest.onAuthRequired.addListener(
 
 
 def get_driver(background, viewports, agent, auth_required, path, proxy, proxy_type, proxy_folder):
-    options = webdriver.ChromeOptions()
+    options = Options()
     options.headless = background
     if viewports:
         options.add_argument(f"--window-size={choice(viewports)}")
@@ -115,8 +125,10 @@ def get_driver(background, viewports, agent, auth_required, path, proxy, proxy_t
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--disable-features=UserAgentClientHint')
     options.add_argument("--disable-web-security")
-    webdriver.DesiredCapabilities.CHROME['loggingPrefs'] = {
-        'driver': 'OFF', 'server': 'OFF', 'browser': 'OFF'}
+    
+    # Removed loggingPrefs
+    # webdriver.DesiredCapabilities.CHROME['loggingPrefs'] = {
+    #     'driver': 'OFF', 'server': 'OFF', 'browser': 'OFF'}
 
     if not background:
         options.add_extension(WEBRTC)

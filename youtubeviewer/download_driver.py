@@ -25,9 +25,9 @@ import platform
 import shutil
 import subprocess
 import sys
-
-import undetected_chromedriver._compat as uc
-
+# Leaske: Updated since the submodule is no longer part of the newer versions of undetected_chromedriver
+import undetected_chromedriver as uc
+import os
 from .colors import *
 
 CHROME = ['{8A69D345-D564-463c-AFF1-A69D9E530F96}',
@@ -105,13 +105,16 @@ def download_driver(patched_drivers):
 
         shutil.rmtree(patched_drivers, ignore_errors=True)
 
-    major_version = version.split('.')[0]
+    # Leaske: Convert major_version to an integer for proper comparison
+    major_version = int(version.split('.')[0])
 
-    uc.TARGET_VERSION = major_version
+    # Leaske: Updated to use ChromeOptions and initialize the driver with the major version
+    options = uc.ChromeOptions()
+    driver = uc.Chrome(version_main=major_version, options=options)
 
-    uc.install()
+    driver_path = driver.service.path  # Get the path to the downloaded driver
 
-    return osname, exe_name
+    return osname, exe_name, driver_path
 
 
 def copy_drivers(cwd, patched_drivers, exe, total):

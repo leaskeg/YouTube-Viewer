@@ -1,10 +1,1 @@
-38.154.227.167:5868:gdfmbipr:b87b7t83bxoa
-185.199.229.156:7492:gdfmbipr:b87b7t83bxoa
-185.199.228.220:7300:gdfmbipr:b87b7t83bxoa
-185.199.231.45:8382:gdfmbipr:b87b7t83bxoa
-188.74.210.207:6286:gdfmbipr:b87b7t83bxoa
-188.74.183.10:8279:gdfmbipr:b87b7t83bxoa
-188.74.210.21:6100:gdfmbipr:b87b7t83bxoa
-45.155.68.129:8133:gdfmbipr:b87b7t83bxoa
-154.95.36.199:6893:gdfmbipr:b87b7t83bxoa
-45.94.47.66:8110:gdfmbipr:b87b7t83bxoa
+

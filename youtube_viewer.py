@@ -1,27 +1,3 @@
-"""
-MIT License
-
-Copyright (c) 2021-2023 MShawon
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-"""
-import io
 import json
 import logging
 import re
@@ -34,7 +10,7 @@ from fake_headers import Headers, browsers
 from faker import Faker
 from requests.exceptions import RequestException
 from tabulate import tabulate
-from undetected_chromedriver.patcher import Patcher
+import undetected_chromedriver as uc
 
 from youtubeviewer import website
 from youtubeviewer.basics import *
@@ -102,7 +78,6 @@ fake = Faker()
 cwd = os.getcwd()
 patched_drivers = os.path.join(cwd, 'patched_drivers')
 config_path = os.path.join(cwd, 'config.json')
-driver_identifier = os.path.join(cwd, 'patched_drivers', 'chromedriver')
 
 DATABASE = os.path.join(cwd, 'database.db')
 DATABASE_BACKUP = os.path.join(cwd, 'database_backup.db')
@@ -123,28 +98,10 @@ referers = choices(referers, k=len(referers)*3)
 website.console = console
 website.database = DATABASE
 
-
-def monkey_patch_exe(self):
-    linect = 0
-    replacement = self.gen_random_cdc()
-    replacement = f"  var key = '${replacement.decode()}_';\n".encode()
-    with io.open(self.executable_path, "r+b") as fh:
-        for line in iter(lambda: fh.readline(), b""):
-            if b"var key = " in line:
-                fh.seek(-len(line), 1)
-                fh.write(replacement)
-                linect += 1
-        return linect
-
-
-Patcher.patch_exe = monkey_patch_exe
-
-
 def timestamp():
     global date_fmt
     date_fmt = datetime.now().strftime("%d-%b-%Y %H:%M:%S")
     return bcolors.OKGREEN + f'[{date_fmt}] | ' + bcolors.OKCYAN + f'{cpu_usage} | '
-
 
 def clean_exe_temp(folder):
     temp_name = None
@@ -162,7 +119,6 @@ def clean_exe_temp(folder):
         if temp_name not in f:
             shutil.rmtree(f, ignore_errors=True)
 
-
 def update_chrome_version():
     link = 'https://gist.githubusercontent.com/MShawon/29e185038f22e6ac5eac822a1e422e9d/raw/versions.txt'
 
@@ -170,7 +126,6 @@ def update_chrome_version():
     chrome_versions = output.split('\n')
 
     browsers.chrome_ver = chrome_versions
-
 
 def check_update():
     api_url = 'https://api.github.com/repos/MShawon/YouTube-Viewer/releases/latest'
@@ -196,7 +151,6 @@ def check_update():
     except Exception:
         pass
 
-
 def create_html(text_dict):
     if len(console) > 250:
         console.pop()
@@ -208,7 +162,6 @@ def create_html(text_dict):
     html = date + cpu + str_fmt
 
     console.insert(0, html)
-
 
 def detect_file_change():
     global hash_urls, hash_queries, urls, queries
@@ -222,7 +175,6 @@ def detect_file_change():
         hash_queries = get_hash("search.txt")
         queries = load_search()
         suggested.clear()
-
 
 def direct_or_search(position):
     keyword = None
@@ -257,7 +209,6 @@ def direct_or_search(position):
 
     return url, method, youtube, keyword, video_title
 
-
 def features(driver):
     if bandwidth:
         save_bandwidth(driver)
@@ -269,7 +220,6 @@ def features(driver):
     play_video(driver)
 
     change_playback_speed(driver, playback_speed)
-
 
 def update_view_count(position):
     view.append(position)
@@ -285,7 +235,6 @@ def update_view_count(position):
                 database=DATABASE, threads=max_threads)
         except Exception:
             pass
-
 
 def set_referer(position, url, method, driver):
     referer = choice(referers)
@@ -311,7 +260,6 @@ def set_referer(position, url, method, driver):
 
     else:
         driver.get(url)
-
 
 def youtube_normal(method, keyword, video_title, driver, output):
     if method == 2:
@@ -342,7 +290,6 @@ def youtube_normal(method, keyword, video_title, driver, output):
 
     return view_stat
 
-
 def youtube_music(driver):
     if 'coming-soon' in driver.title or 'not available' in driver.title:
         raise Exception(
@@ -363,7 +310,6 @@ def youtube_music(driver):
     view_stat = 'music'
 
     return view_stat, output
-
 
 def spoof_timezone_geolocation(proxy_type, proxy, driver):
     try:
@@ -406,7 +352,6 @@ def spoof_timezone_geolocation(proxy_type, proxy, driver):
         pass
 
     return info
-
 
 def control_player(driver, output, position, proxy, youtube, collect_id=True):
     current_url = driver.current_url
@@ -497,7 +442,6 @@ def control_player(driver, output, position, proxy, youtube, collect_id=True):
 
     return current_url, current_channel
 
-
 def youtube_live(proxy, position, driver, output):
     error = 0
     while True:
@@ -527,7 +471,6 @@ def youtube_live(proxy, position, driver, output):
         sleep(60)
 
     update_view_count(position)
-
 
 def music_and_video(proxy, position, youtube, driver, output, view_stat):
     rand_choice = 1
@@ -571,7 +514,6 @@ def music_and_video(proxy, position, youtube, driver, output, view_stat):
 
     return current_url, current_channel
 
-
 def channel_or_endscreen(proxy, position, youtube, driver, view_stat, current_url, current_channel):
     option = 1
     if view_stat != 'music' and driver.current_url == current_url:
@@ -614,7 +556,6 @@ def channel_or_endscreen(proxy, position, youtube, driver, view_stat, current_ur
         if option in [2, 3, 4]:
             update_view_count(position)
 
-
 def windows_kill_drivers():
     for process in constructor.Win32_Process(["CommandLine", "ProcessId"]):
         try:
@@ -626,25 +567,22 @@ def windows_kill_drivers():
             pass
     print('\n')
 
-
-def quit_driver(driver, data_dir):
-    if driver and driver in driver_dict:
-        driver.quit()
-        if data_dir in temp_folders:
-            temp_folders.remove(data_dir)
-
-    proxy_folder = driver_dict.pop(driver, None)
-    if proxy_folder:
-        shutil.rmtree(proxy_folder, ignore_errors=True)
-
-    status = 400
-    return status
+def quit_driver(driver):
+    try:
+        if driver and driver in driver_dict:
+            driver.quit()
+    except Exception as e:
+        print(f"Error while quitting driver: {e}")
+    finally:
+        proxy_folder = driver_dict.pop(driver, None)
+        if proxy_folder:
+            shutil.rmtree(proxy_folder, ignore_errors=True)
+    return 400
 
 
 def main_viewer(proxy_type, proxy, position):
     global width, viewports
     driver = None
-    data_dir = None
 
     if cancel_all:
         raise KeyboardInterrupt
@@ -686,38 +624,24 @@ def main_viewer(proxy_type, proxy, position):
                 bad_proxies.remove(proxy)
                 sleep(1)
 
-            patched_driver = os.path.join(
-                patched_drivers, f'chromedriver_{position%threads}{exe_name}')
+            options = uc.ChromeOptions()
+            options.add_argument(f"user-agent={agent}")
+            if background:
+                options.add_argument("--headless")
+            options.add_argument("--disable-gpu")
+            options.add_argument("--disable-extensions")
+            options.add_argument("--proxy-server='direct://'")
+            options.add_argument("--proxy-bypass-list=*")
+            options.add_argument("--start-maximized")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-web-security")
+            options.add_argument("--allow-running-insecure-content")
+            options.add_argument("--disable-infobars")
+            options.add_argument("--lang=en")
 
-            try:
-                Patcher(executable_path=patched_driver).patch_exe()
-            except Exception as e:
-                print(timestamp() + bcolors.FAIL +
-                      f"Worker {position} | Failed to patch executable: {e}" + bcolors.ENDC)
-                raise
-
-            proxy_folder = os.path.join(
-                cwd, 'extension', f'proxy_auth_{position}')
-
-            factor = int(threads/(0.1*threads + 1))
-            sleep_time = int((str(position)[-1])) * factor
-            sleep(sleep_time)
-            if cancel_all:
-                raise KeyboardInterrupt
-            try:
-                driver = get_driver(background, viewports, agent, auth_required,
-                                patched_driver, proxy, proxy_type, proxy_folder)
-                driver_dict[driver] = proxy_folder
-                data_dir = driver.capabilities['chrome']['userDataDir']
-                temp_folders.append(data_dir)
-            except Exception as e:
-                print(f"Worker {position} | Error initializing driver: {e}")
-                raise
-
-            driver_dict[driver] = proxy_folder
-
-            data_dir = driver.capabilities['chrome']['userDataDir']
-            temp_folders.append(data_dir)
+            driver = uc.Chrome(options=options)
+            driver_dict[driver] = None
 
             sleep(2)
 
@@ -775,10 +699,10 @@ def main_viewer(proxy_type, proxy, position):
                 except WebDriverException:
                     pass
 
-            status = quit_driver(driver=driver, data_dir=data_dir)
+            status = quit_driver(driver=driver)
 
         except Exception as e:
-            status = quit_driver(driver=driver, data_dir=data_dir)
+            status = quit_driver(driver=driver)
 
             print(timestamp() + bcolors.FAIL +
                   f"Worker {position} | Line : {e.__traceback__.tb_lineno} | {type(e).__name__} | {e.args[0] if e.args else ''}" + bcolors.ENDC)
@@ -819,7 +743,6 @@ def get_proxy_list():
 
     return proxy_list
 
-
 def stop_server(immediate=False):
     if not immediate:
         print('Allowing a maximum of 15 minutes to finish all the running drivers...')
@@ -838,7 +761,6 @@ def stop_server(immediate=False):
                 print(f'Server shut down error : {response.status_code}')
                 sleep(3)
 
-
 def clean_exit():
     print(timestamp() + bcolors.WARNING +
           'Cleaning up processes...' + bcolors.ENDC)
@@ -849,10 +771,13 @@ def clean_exit():
         windows_kill_drivers()
     else:
         for driver in list(driver_dict):
-            quit_driver(driver=driver, data_dir=None)
+            quit_driver(driver)
 
     for folder in temp_folders:
-        shutil.rmtree(folder, ignore_errors=True)
+        try:
+            shutil.rmtree(folder, ignore_errors=True)
+        except Exception as e:
+            print(f"Error while removing folder {folder}: {e}")
 
 
 def cancel_pending_task(not_done):
@@ -868,7 +793,6 @@ def cancel_pending_task(not_done):
     _ = wait(not_done, timeout=None)
 
     clean_exit()
-
 
 def view_video(position):
     if position == 0:
@@ -894,7 +818,6 @@ def view_video(position):
                 main_viewer('socks4', proxy, position)
             if checked[position] == 'socks4':
                 main_viewer('socks5', proxy, position)
-
 
 def main():
     global cancel_all, proxy_list, total_proxies, proxies_from_api, threads, hash_config, futures, cpu_usage
@@ -999,7 +922,6 @@ def main():
 
             cancel_pending_task(not_done=not_done)
             raise KeyboardInterrupt
-
 
 if __name__ == '__main__':
     clean_exe_temp(folder='youtube_viewer')
